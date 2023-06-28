@@ -6,13 +6,6 @@ import fs from 'fs'
 import pkg from 'web-ifc-three'
 import './fetch-polyfill.js'
 
-import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js'
-import {RenderPass} from 'three/addons/postprocessing/RenderPass.js'
-import {SSAARenderPass} from 'three/addons/postprocessing/SSAARenderPass.js'
-import {ShaderPass} from 'three/addons/postprocessing/ShaderPass.js'
-import {GammaCorrectionShader} from 'three/addons/shaders/GammaCorrectionShader.js'
-
-
 const {IFCLoader} = pkg
 
 /*
@@ -122,24 +115,6 @@ const model = await loadIfcModel(process.argv[2])
 model.position.set(-40, 0, 0)
 scene.add(model)
 
-// headless gl has some rendering issues, e.g. no-AA
-// See https://github.com/stackgl/headless-gl/issues/30
-const useSsaa = false
-if (useSsaa) {
-  const composer = new EffectComposer(renderer)
-  composer.setPixelRatio(window.devicePixelRatio || 1)
-  // composer.addPass(new RenderPass(scene, camera))
-  const ssaaPass = new SSAARenderPass(scene, camera)
-  ssaaPass.sampleLevel = 2
-  ssaaPass.unbiased = true
-  ssaaPass.clearColor = 0xffffff
-  ssaaPass.clearAlpha = 1.0
-  ssaaPass.enabled = true
-  composer.addPass(ssaaPass)
-  composer.addPass(new ShaderPass(GammaCorrectionShader))
-  composer.render()
-} else {
-  renderer.render(scene, camera)
-}
+renderer.render(scene, camera)
 
 takeScreenshot(glCtx)
