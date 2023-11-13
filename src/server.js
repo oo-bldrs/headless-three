@@ -1,5 +1,6 @@
 import express from 'express'
 import * as Sentry from '@sentry/node'
+import audit from 'express-requests-logger'
 import {
   fitModelToFrame,
   initThree,
@@ -43,43 +44,17 @@ app.use(Sentry.Handlers.tracingHandler())
 // Enable JSON request body middleware
 app.use(express.json())
 
-function loggingHandler(req, res, next) {
-
-  let bytesSent = 0
-  let responseHeaders
-
-  // Patch each of the egress methods to accumulate data for logging.
-  const originalWriteHead = res.writeHead
-  const originalWrite = res.write
-  const originalEnd = res.end
-
-  res.writeHead = function (statusCode, headers) {
-    responseHeaders = {
-      statusCode: statusCode,
-      headers: headers || res.getHeaders(),
-    }
-    return originalWriteHead.apply(res, arguments)
+app.use(audit({
+  request: {
+    maxBodyLength: 1024
+  },
+  response: {
+    maxBodyLength: 128
+  },
+  shouldSkipAuditFunc: (req, res) => {
+    return false
   }
-
-  res.write = function (chunk, ...rest) {
-    bytesSent += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk)
-    return originalWrite.call(res, chunk, ...rest)
-  }
-
-  res.end = function (chunk, ...rest) {
-    if (chunk) {
-      bytesSent += Buffer.isBuffer(chunk) ? chunk.length : Buffer.byteLength(chunk)
-    }
-    renderLogger.info('response log stuff', {requestHeaders: req.rawHeaders, responseHeaders, responseSize: bytesSent})
-
-    return originalEnd.call(res, chunk, ...rest)
-  }
-
-  // Don't forget to call next() to pass on to the next middleware/route handler!
-  next()
-}
-app.use(loggingHandler)
-
+}))
 
 app.post('/render', handler)
 app.get('/healthcheck', (req, res) => {
